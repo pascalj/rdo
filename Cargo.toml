@@ -1,0 +1,8 @@
+[package]
+name = "rdo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossbeam = "0.8.4"
+libmpv = "=2.0.1"
