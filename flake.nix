@@ -34,6 +34,7 @@
           mkShell {
             buildInputs = [
               pkg-config
+              mpv
               gdb
               rust-bin.stable.latest.default
             ];

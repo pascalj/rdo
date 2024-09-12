@@ -5,4 +5,6 @@ edition = "2021"
 
 [dependencies]
 crossbeam = "0.8.4"
-libmpv = "=2.0.1"
+crossterm = "0.28.1"
+libmpv2 = "=4.0.0"
+ratatui = "0.28.1"

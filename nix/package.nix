@@ -10,6 +10,7 @@ rustPlatform.buildRustPackage {
   };
 
   buildInputs = [ mpv ];
+  nativeBuildInputs = [ mpv ];
 
   # postFixup = ''
   #   wrapProgram $out/bin/rdo \

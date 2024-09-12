@@ -1,75 +1,61 @@
-use libmpv::{events::*, *};
+use ratatui::{
+    backend::Backend,
+    crossterm::event::{self, Event, KeyCode},
+    crossterm::terminal::{disable_raw_mode, enable_raw_mode},
+    layout::Alignment,
+    style::{Modifier, Style},
+    widgets::{block::title::Title, Block, List, ListState},
+    Terminal,
+};
+use std::io;
 
-use std::{collections::HashMap, env, thread, time::Duration};
+mod app;
+mod ui;
 
-const VIDEO_URL: &str = "https://www.youtube.com/watch?v=DLzxrzFCyOs";
+use crate::{app::App, ui::ui};
 
-fn main() -> Result<()> {
-    let path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| String::from(VIDEO_URL));
-
-    // Create an `Mpv` and set some properties.
-    let mpv = Mpv::new()?;
-    mpv.set_property("volume", 15)?;
-    mpv.set_property("vo", "null")?;
-
-    let mut ev_ctx = mpv.create_event_context();
-    ev_ctx.disable_deprecated_events()?;
-    ev_ctx.observe_property("volume", Format::Int64, 0)?;
-    ev_ctx.observe_property("demuxer-cache-state", Format::Node, 0)?;
-
-    crossbeam::scope(|scope| {
-        scope.spawn(|_| {
-            mpv.playlist_load_files(&[(&path, FileState::AppendPlay, None)])
-                .unwrap();
-
-            thread::sleep(Duration::from_secs(3));
-
-            mpv.set_property("volume", 25).unwrap();
-
-            thread::sleep(Duration::from_secs(5));
-
-            // Trigger `Event::EndFile`.
-            mpv.playlist_next_force().unwrap();
-        });
-        scope.spawn(move |_| loop {
-            let ev = ev_ctx.wait_event(600.).unwrap_or(Err(Error::Null));
-
-            match ev {
-                Ok(Event::EndFile(r)) => {
-                    println!("Exiting! Reason: {:?}", r);
-                    break;
-                }
-
-                Ok(Event::PropertyChange {
-                    name: "demuxer-cache-state",
-                    change: PropertyData::Node(mpv_node),
-                    ..
-                }) => {
-                    let ranges = seekable_ranges(mpv_node).unwrap();
-                    println!("Seekable ranges updated: {:?}", ranges);
-                }
-                Ok(e) => println!("Event triggered: {:?}", e),
-                Err(e) => println!("Event errored: {:?}", e),
-            }
-        });
-    })
-    .unwrap();
-    Ok(())
+fn main() -> io::Result<()> {
+    let mut terminal = ratatui::init();
+    enable_raw_mode()?;
+    terminal.clear()?;
+    let mut app = app::App::new();
+    let app_result = run_app(&mut terminal, &mut app);
+    ratatui::restore();
+    disable_raw_mode()?;
+    app_result
 }
 
-fn seekable_ranges(demuxer_cache_state: &MpvNode) -> Option<Vec<(f64, f64)>> {
-    let mut res = Vec::new();
-    let props: HashMap<&str, MpvNode> = demuxer_cache_state.to_map()?.collect();
-    let ranges = props.get("seekable-ranges")?.to_array()?;
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
+    let mut list_state = ListState::default();
+    let list = app
+        .stations
+        .iter()
+        .collect::<List>()
+        .block(Block::bordered().title(Title::from("rdo").alignment(Alignment::Center)))
+        .highlight_style(Style::new().add_modifier(Modifier::REVERSED))
+        .highlight_symbol(">> ")
+        .repeat_highlight_symbol(false);
+    list_state.select_first();
 
-    for node in ranges {
-        let range: HashMap<&str, MpvNode> = node.to_map()?.collect();
-        let start = range.get("start")?.to_f64()?;
-        let end = range.get("end")?.to_f64()?;
-        res.push((start, end));
+    loop {
+        // terminal.draw(|f| ui(f, app))?;
+        terminal.draw(|f| f.render_stateful_widget(&list, f.area(), &mut list_state))?;
+
+        if let Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Press {
+                match key.code {
+                    KeyCode::Char('q') => {
+                        return Ok(());
+                    }
+                    KeyCode::Up => {
+                        list_state.select_previous();
+                    }
+                    KeyCode::Down => {
+                        list_state.select_next();
+                    }
+                    _ => {}
+                }
+            }
+        }
     }
-
-    Some(res)
 }
