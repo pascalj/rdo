@@ -1,9 +1,11 @@
 use ratatui::widgets::ListItem;
 
+use crate::player::Player;
+
 #[derive(Debug)]
 pub struct Station {
-    name: String,
-    url: String,
+    pub name: String,
+    pub url: String,
 }
 
 impl<'a> From<&Station> for ListItem<'a> {
@@ -22,26 +24,25 @@ impl Station {
 }
 
 #[derive(Debug)]
-pub enum PlayerState {
-    Playing,
-    Stopped,
-    Buffering,
-}
-
-#[derive(Debug)]
 pub struct App {
-    selected_index: usize,
-    player_state: PlayerState,
     pub stations: Vec<Station>,
+    player: Player,
+    current_station: Option<usize>,
     exit: bool,
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new() -> Self {
         App {
-            selected_index: 0,
-            player_state: PlayerState::Stopped,
-            stations: vec![Station::new("name", "url"), Station::new("name2", "url2")],
+            stations: vec![
+                Station::new("Radio Paradise", "http://stream.radioparadise.com/aac-128"),
+                Station::new(
+                    "detektor.fm",
+                    "https://streams.detektor.fm/wort/mp3-256/website/",
+                ),
+            ],
+            player: Player::new(),
+            current_station: None,
             exit: false,
         }
     }
@@ -50,11 +51,14 @@ impl App {
         self.exit = true;
     }
 
-    pub fn select_up(&mut self) {
-        self.selected_index = std::cmp::min(self.stations.len() - 1, self.selected_index + 1)
+    pub fn change_station(&mut self, station_index: usize) {
+        if let Some(station) = self.stations.get(station_index) {
+            self.current_station = Some(station_index);
+            self.player.play(station)
+        }
     }
 
-    pub fn select_down(&mut self) {
-        self.selected_index = std::cmp::max(0, self.selected_index - 1);
+    pub fn stop(&mut self) {
+        self.player.stop()
     }
 }

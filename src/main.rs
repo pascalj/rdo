@@ -1,3 +1,4 @@
+use crate::{app::App, ui::ui};
 use ratatui::{
     backend::Backend,
     crossterm::event::{self, Event, KeyCode},
@@ -10,9 +11,8 @@ use ratatui::{
 use std::io;
 
 mod app;
+mod player;
 mod ui;
-
-use crate::{app::App, ui::ui};
 
 fn main() -> io::Result<()> {
     let mut terminal = ratatui::init();
@@ -45,6 +45,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
             if key.kind == event::KeyEventKind::Press {
                 match key.code {
                     KeyCode::Char('q') => {
+                        app.exit();
                         return Ok(());
                     }
                     KeyCode::Up => {
@@ -52,6 +53,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     }
                     KeyCode::Down => {
                         list_state.select_next();
+                    }
+                    KeyCode::Enter => {
+                        if let Some(selected) = list_state.selected() {
+                            app.change_station(selected);
+                        };
+                    }
+                    KeyCode::Char(' ') => {
+                        app.stop();
                     }
                     _ => {}
                 }
