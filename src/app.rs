@@ -1,6 +1,6 @@
 use ratatui::widgets::ListItem;
 
-use crate::player::Player;
+use crate::player::{Player, PlayerState};
 
 #[derive(Debug)]
 pub struct Station {
@@ -26,7 +26,7 @@ impl Station {
 #[derive(Debug)]
 pub struct App {
     pub stations: Vec<Station>,
-    player: Player,
+    pub player: Player,
     current_station: Option<usize>,
     exit: bool,
 }
@@ -60,5 +60,13 @@ impl App {
 
     pub fn stop(&mut self) {
         self.player.stop()
+    }
+
+    pub fn update_status(&mut self) {
+        self.player.update_status()
+    }
+
+    pub fn state(&self) -> PlayerState {
+        self.player.state()
     }
 }
