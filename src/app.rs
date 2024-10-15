@@ -1,8 +1,12 @@
+use dirs::config_local_dir;
 use ratatui::widgets::ListItem;
+
+use serde::{Deserialize, Serialize};
 
 use crate::player::{Player, PlayerState};
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "type")]
 pub struct Station {
     pub name: String,
     pub url: String,
@@ -14,14 +18,14 @@ impl<'a> From<&Station> for ListItem<'a> {
     }
 }
 
-impl Station {
-    fn new(name: &str, url: &str) -> Self {
-        Self {
-            name: String::from(name),
-            url: String::from(url),
-        }
-    }
-}
+// impl Station {
+//     fn new(name: &str, url: &str) -> Self {
+//         Self {
+//             name: String::from(name),
+//             url: String::from(url),
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub struct App {
@@ -31,20 +35,26 @@ pub struct App {
     exit: bool,
 }
 
+fn load_stations() -> Option<std::vec::Vec<Station>> {
+    let config_dir = config_local_dir()?;
+    let file_contents = std::fs::read_to_string(config_dir.join("rdo").join("stations.csv"));
+    if let Ok(stations_str) = file_contents {
+        return csv::Reader::from_reader(stations_str.as_bytes())
+            .deserialize()
+            .collect::<Result<Vec<Station>, csv::Error>>().ok();
+    }
+    None
+}
+
 impl App {
     pub fn new() -> Self {
-        App {
-            stations: vec![
-                Station::new("Radio Paradise", "http://stream.radioparadise.com/aac-128"),
-                Station::new(
-                    "detektor.fm",
-                    "https://streams.detektor.fm/wort/mp3-256/website/",
-                ),
-            ],
+        let app = App {
+            stations: load_stations().unwrap_or(vec!()),
             player: Player::new(),
             current_station: None,
             exit: false,
-        }
+        };
+        app
     }
 
     pub fn exit(&mut self) {
