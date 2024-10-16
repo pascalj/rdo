@@ -3,7 +3,7 @@ use std::fmt;
 
 use libmpv2::{events::*, *};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum PlayerState {
     Playing,
     Stopped,
@@ -14,7 +14,7 @@ pub struct Player {
     state: PlayerState,
     mpv: Mpv,
     event_context: events::EventContext,
-    pub current_title: Option<String>
+    pub current_title: Option<String>,
 }
 
 impl fmt::Debug for Player {
@@ -62,9 +62,7 @@ impl Player {
                     name: "media-title",
                     change: PropertyData::Str(title),
                     ..
-                } => {
-                    self.current_title = Some(title.into())
-                }
+                } => self.current_title = Some(title.into()),
                 _ => {}
             }
         }

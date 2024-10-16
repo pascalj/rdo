@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::player::{Player, PlayerState};
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "type")]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Station {
     pub name: String,
     pub url: String,
@@ -31,7 +30,8 @@ impl<'a> From<&Station> for ListItem<'a> {
 pub struct App {
     pub stations: Vec<Station>,
     pub player: Player,
-    current_station: Option<usize>,
+    pub current_station: Option<usize>,
+    pub current_selection: Option<usize>,
     exit: bool,
 }
 
@@ -52,6 +52,7 @@ impl App {
             stations: load_stations().unwrap_or(vec!()),
             player: Player::new(),
             current_station: None,
+            current_selection: Some(1),
             exit: false,
         };
         app

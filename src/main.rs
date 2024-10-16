@@ -8,6 +8,7 @@ use ratatui::{
     crossterm::terminal::{disable_raw_mode, enable_raw_mode},
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
+    text::Span,
     widgets::{block::title::Title, Block, BorderType, Borders, List, ListState, Paragraph},
     Terminal,
 };
@@ -29,21 +30,27 @@ fn main() -> io::Result<()> {
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
     let mut list_state = ListState::default();
-    let list = app
-        .stations
-        .iter()
-        .collect::<List>()
-        .block(
-            Block::bordered()
-                .border_type(BorderType::Rounded)
-                .title(Title::from("rdo").alignment(Alignment::Center)),
-        )
-        .highlight_style(Style::new().add_modifier(Modifier::REVERSED))
-        .highlight_symbol("> ")
-        .repeat_highlight_symbol(false);
-    list_state.select_first();
-
+    list_state.select(app.current_selection);
     loop {
+        let list = app
+            .stations
+            .iter()
+            .enumerate()
+            .map(|(i, item)| {
+                if Some(i) == app.current_station && app.state() == player::PlayerState::Playing {
+                    return Span::styled(&item.name, Style::default().add_modifier(Modifier::BOLD));
+                }
+                return Span::raw(&item.name);
+            })
+            .collect::<List>()
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .title(Title::from("rdo").alignment(Alignment::Center)),
+            )
+            .highlight_style(Style::new().add_modifier(Modifier::REVERSED))
+            .repeat_highlight_symbol(false);
+
         // terminal.draw(|f| ui(f, app))?;
         terminal.draw(|f| {
             let layout = Layout::default()
