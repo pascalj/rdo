@@ -36,11 +36,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
             .stations
             .iter()
             .enumerate()
-            .map(|(i, item)| {
+            .map(|(i, station)| {
                 if Some(i) == app.current_station && app.state() == player::PlayerState::Playing {
-                    return Span::styled(&item.name, Style::default().add_modifier(Modifier::BOLD));
+                    return Span::styled(
+                        &station.name,
+                        Style::default().add_modifier(Modifier::BOLD),
+                    );
                 }
-                return Span::raw(&item.name);
+                return Span::raw(&station.name);
             })
             .collect::<List>()
             .block(
@@ -53,22 +56,31 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
 
         // terminal.draw(|f| ui(f, app))?;
         terminal.draw(|f| {
+            let has_title =
+                app.player.current_title.is_some() && app.state() == player::PlayerState::Playing;
+            let mut constraints = vec![Constraint::Fill(1)];
+            if has_title {
+                constraints.push(Constraint::Max(3));
+            }
             let layout = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(vec![Constraint::Fill(1), Constraint::Max(3)])
+                .constraints(constraints)
                 .split(f.area());
             f.render_stateful_widget(&list, layout[0], &mut list_state);
-            f.render_widget(
-                Paragraph::new(app.player.current_title.clone().unwrap_or(" - ".to_owned())).block(
-                    Block::new()
-                        .borders(Borders::ALL)
-                        .border_type(BorderType::Rounded),
-                ),
-                layout[1],
-            )
+            if has_title {
+                f.render_widget(
+                    Paragraph::new(app.player.current_title.clone().unwrap_or(" - ".to_owned()))
+                        .block(
+                            Block::new()
+                                .borders(Borders::ALL)
+                                .border_type(BorderType::Rounded),
+                        ),
+                    layout[1],
+                )
+            }
         })?;
 
-        match event::poll(Duration::from_millis(50)) {
+        match event::poll(Duration::from_millis(100)) {
             Ok(true) => {
                 if let Event::Key(key) = event::read()? {
                     if key.kind == event::KeyEventKind::Press {
