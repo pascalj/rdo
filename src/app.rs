@@ -17,21 +17,13 @@ impl<'a> From<&Station> for ListItem<'a> {
     }
 }
 
-// impl Station {
-//     fn new(name: &str, url: &str) -> Self {
-//         Self {
-//             name: String::from(name),
-//             url: String::from(url),
-//         }
-//     }
-// }
-
 #[derive(Debug)]
 pub struct App {
     pub stations: Vec<Station>,
     pub player: Player,
     pub current_station: Option<usize>,
     pub current_selection: Option<usize>,
+    pub current_edit: Option<Station>,
     exit: bool,
 }
 
@@ -41,21 +33,22 @@ fn load_stations() -> Option<std::vec::Vec<Station>> {
     if let Ok(stations_str) = file_contents {
         return csv::Reader::from_reader(stations_str.as_bytes())
             .deserialize()
-            .collect::<Result<Vec<Station>, csv::Error>>().ok();
+            .collect::<Result<Vec<Station>, csv::Error>>()
+            .ok();
     }
     None
 }
 
 impl App {
     pub fn new() -> Self {
-        let app = App {
-            stations: load_stations().unwrap_or(vec!()),
+        App {
+            stations: load_stations().unwrap_or(vec![]),
             player: Player::new(),
             current_station: None,
             current_selection: Some(1),
+            current_edit: None,
             exit: false,
-        };
-        app
+        }
     }
 
     pub fn exit(&mut self) {
