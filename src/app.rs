@@ -17,6 +17,23 @@ impl<'a> From<&Station> for ListItem<'a> {
     }
 }
 
+// TODO: move to ui
+#[derive(Clone, Copy, Debug)]
+pub enum EditMode {
+    Url,
+    Name,
+}
+
+impl EditMode {
+    pub fn toggle(&self) -> Self {
+        use EditMode::*;
+        match self {
+            Url => Name,
+            Name => Url,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct App {
     pub stations: Vec<Station>,
@@ -24,6 +41,7 @@ pub struct App {
     pub current_station: Option<usize>,
     pub current_selection: Option<usize>,
     pub current_edit: Option<Station>,
+    pub edit_mode: EditMode,
     exit: bool,
 }
 
@@ -47,6 +65,7 @@ impl App {
             current_station: None,
             current_selection: Some(1),
             current_edit: None,
+            edit_mode: EditMode::Name,
             exit: false,
         }
     }
@@ -68,6 +87,18 @@ impl App {
 
     pub fn update_status(&mut self) {
         self.player.update_status()
+    }
+
+    pub fn abort_edit(&mut self) {
+        self.current_edit = None;
+    }
+
+    pub fn update_current(&mut self) {
+        if let Some(updated_station) = self.current_edit.clone() {
+            self.current_selection
+                .map(|i| self.stations[i] = updated_station);
+        };
+        self.current_edit = None;
     }
 
     pub fn state(&self) -> PlayerState {
