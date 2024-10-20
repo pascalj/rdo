@@ -18,9 +18,9 @@ rustPlatform.buildRustPackage {
   # '';
 
   meta = {
-    description = "Small but mighty CLI for radio listening";
+    description = "Small CLI for radio listening";
     homepage = "https://github.com/pascalj/rdo";
-    license = lib.licenses.unlicense;
-    maintainers = [ lib.maintainers.tailhook ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }
