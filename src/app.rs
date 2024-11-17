@@ -101,6 +101,8 @@ impl App {
         self.current_edit = None;
     }
 
+    pub fn save_station(&mut self) {}
+
     pub fn state(&self) -> PlayerState {
         self.player.state()
     }
