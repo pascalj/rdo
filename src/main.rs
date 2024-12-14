@@ -23,6 +23,7 @@ fn main() -> io::Result<()> {
 fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut app = app::App::new();
     let mut ui = ui::UI::new();
+
     loop {
         app.update_status();
 
@@ -63,9 +64,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
                                 app.select_next();
                             }
                             KeyCode::Enter => {
-                                if let Some(selected) = app.selected_index() {
-                                    app.change_station(selected);
-                                };
+                                app.change_station();
                             }
                             KeyCode::Char(' ') => {
                                 app.stop();

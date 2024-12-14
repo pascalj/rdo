@@ -1,4 +1,4 @@
-use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
+use ratatui::crossterm::event::KeyEvent;
 use ratatui::style::{Modifier, Style};
 
 use crate::app::{App, EditField, Station};

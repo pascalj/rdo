@@ -1,12 +1,10 @@
-use std::path::{Path, PathBuf};
-
 use dirs::config_local_dir;
-use ratatui::widgets::ListItem;
+use std::path::PathBuf;
 
+use ratatui::widgets::{ListItem, ListState};
 use serde::{Deserialize, Serialize};
 
 use crate::player::{Player, PlayerState};
-use ratatui::widgets::ListState;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Station {
@@ -47,7 +45,6 @@ pub struct App {
     pub stations: Vec<Station>,
     pub player: Player,
     pub current_station: Option<usize>,
-    pub current_selection: Option<usize>,
     pub mode: Mode,
     pub edit_field: EditField,
     pub list_state: ListState,
@@ -71,14 +68,16 @@ fn load_stations() -> Option<std::vec::Vec<Station>> {
 
 impl App {
     pub fn new() -> Self {
+        let stations = load_stations().unwrap_or(vec![]);
+        let mut list_state = ListState::default();
+        list_state.select(if stations.is_empty() { None } else { Some(0) });
         App {
-            stations: load_stations().unwrap_or(vec![]),
+            stations,
             player: Player::new(),
             current_station: None,
-            current_selection: Some(1),
             mode: Mode::Normal,
             edit_field: EditField::Name,
-            list_state: ListState::default(),
+            list_state,
             exit: false,
         }
     }
@@ -87,11 +86,10 @@ impl App {
         self.exit = true;
     }
 
-    pub fn change_station(&mut self, station_index: usize) {
-        if let Some(station) = self.stations.get(station_index) {
-            self.current_station = Some(station_index);
-            self.player.play(station)
-        }
+    pub fn change_station(&mut self) {
+        self.selected_index()
+            .and_then(|i| self.stations.get(i))
+            .map(|station| self.player.play(station));
     }
 
     pub fn stop(&mut self) {
@@ -121,10 +119,6 @@ impl App {
             writer.flush().ok()?;
             Some(())
         });
-    }
-
-    pub fn state(&self) -> PlayerState {
-        self.player.state()
     }
 
     pub fn is_playing(&self) -> bool {
