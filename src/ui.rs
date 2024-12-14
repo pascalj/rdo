@@ -7,27 +7,84 @@ use tui_textarea::TextArea;
 
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color},
+    style::Color,
+    text::Span,
     widgets::{block::title::Title, Block, BorderType, Borders, List, ListState, Paragraph},
 };
+
+#[derive(PartialEq, Eq)]
+enum UIMode {
+    Normal,
+    Edit,
+}
 
 pub struct UI<'a> {
     name_input: TextArea<'a>,
     url_input: TextArea<'a>,
+    list_state: ListState,
+    mode: UIMode,
 }
-
 
 impl<'a> UI<'a> {
     pub fn new() -> UI<'a> {
         UI {
             name_input: TextArea::default(),
             url_input: TextArea::default(),
+            list_state: ListState::default(),
+            mode: UIMode::Normal,
         }
     }
 
     pub fn update(&mut self, f: &mut ratatui::Frame, app: &App) {
-        if let Some(_) = app.current_edit.clone() {
+        if self.mode == UIMode::Edit {
             self.show_edit(f);
+        }
+        self.show_list(f, app);
+    }
+
+    fn show_list(&mut self, f: &mut ratatui::Frame, app: &App) {
+        let list = app
+            .stations
+            .iter()
+            .enumerate()
+            .map(|(i, station)| {
+                if Some(i) == app.current_station && app.is_playing() {
+                    return Span::styled(
+                        &station.name,
+                        Style::default().add_modifier(Modifier::BOLD),
+                    );
+                }
+                return Span::raw(&station.name);
+            })
+            .collect::<List>()
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .title(Title::from("rdo").alignment(Alignment::Center)),
+            )
+            .highlight_style(Style::new().add_modifier(Modifier::REVERSED))
+            .repeat_highlight_symbol(false);
+        let has_title = app.player.current_title.is_some() && app.is_playing();
+        let mut constraints = vec![Constraint::Fill(1)];
+        if has_title {
+            constraints.push(Constraint::Max(3));
+        }
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(constraints)
+            .split(f.area());
+
+        f.render_stateful_widget(&list, layout[0], &mut self.list_state);
+
+        if has_title {
+            f.render_widget(
+                Paragraph::new(app.player.current_title.clone().unwrap_or(" - ".to_owned())).block(
+                    Block::new()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded),
+                ),
+                layout[1],
+            )
         }
     }
 
@@ -55,16 +112,31 @@ impl<'a> UI<'a> {
         f.render_widget(popup_block, area);
     }
 
-    pub fn begin_edit(&mut self, station: Station) {
-        self.name_input.insert_str(station.name);
-        self.url_input.insert_str(station.url);
+    pub fn select_previous(&mut self) {
+        self.list_state.select_previous();
+    }
+
+    pub fn select_next(&mut self) {
+        self.list_state.select_next();
+    }
+
+    pub fn selected_index(&self) -> std::option::Option<usize> {
+        self.list_state.selected()
+    }
+
+    pub fn begin_edit(&mut self, station: &Station) {
+        self.name_input = TextArea::default();
+        self.url_input = TextArea::default();
+        self.name_input.insert_str(station.name.clone());
+        self.url_input.insert_str(station.url.clone());
+        self.mode = UIMode::Edit;
     }
 
     pub fn handle_edit(&mut self, app: &mut App, event: Event) {
         match event {
             Event::Key(key) if key.code == KeyCode::Enter => self.save_station(app),
             Event::Key(key) if key.code == KeyCode::Tab => self.toggle_edit_field(app),
-            Event::Key(key) if key.code == KeyCode::Esc => self.exit_edit_mode(app),
+            Event::Key(key) if key.code == KeyCode::Esc => self.exit_edit_mode(),
             Event::Key(key) => self.update_textfields(app, key),
             _ => {}
         }
@@ -72,7 +144,7 @@ impl<'a> UI<'a> {
 
     pub fn save_station(&mut self, app: &mut App) {
         app.save_station();
-        self.exit_edit_mode(app);
+        self.exit_edit_mode();
     }
 
     fn update_textfields(&mut self, app: &App, key: KeyEvent) {
@@ -85,6 +157,7 @@ impl<'a> UI<'a> {
             }
         };
     }
+
     fn toggle_edit_field(&mut self, app: &mut App) {
         app.edit_mode = app.edit_mode.toggle();
         match app.edit_mode {
@@ -103,8 +176,12 @@ impl<'a> UI<'a> {
         };
     }
 
-    fn exit_edit_mode(&mut self, app: &mut App) {
-        app.current_edit = None;
+    pub fn is_editing(&self) -> bool {
+        self.mode == UIMode::Edit
+    }
+
+    fn exit_edit_mode(&mut self) {
+        self.mode = UIMode::Normal
     }
 }
 

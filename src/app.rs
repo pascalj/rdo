@@ -40,7 +40,6 @@ pub struct App {
     pub player: Player,
     pub current_station: Option<usize>,
     pub current_selection: Option<usize>,
-    pub current_edit: Option<Station>,
     pub edit_mode: EditMode,
     exit: bool,
 }
@@ -64,7 +63,6 @@ impl App {
             player: Player::new(),
             current_station: None,
             current_selection: Some(1),
-            current_edit: None,
             edit_mode: EditMode::Name,
             exit: false,
         }
@@ -89,21 +87,13 @@ impl App {
         self.player.update_status()
     }
 
-    pub fn abort_edit(&mut self) {
-        self.current_edit = None;
-    }
-
-    pub fn update_current(&mut self) {
-        if let Some(updated_station) = self.current_edit.clone() {
-            self.current_selection
-                .map(|i| self.stations[i] = updated_station);
-        };
-        self.current_edit = None;
-    }
-
     pub fn save_station(&mut self) {}
 
     pub fn state(&self) -> PlayerState {
         self.player.state()
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.player.state() == PlayerState::Playing
     }
 }
