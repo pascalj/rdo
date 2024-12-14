@@ -1,7 +1,7 @@
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
 use ratatui::style::{Modifier, Style};
 
-use crate::app::{App, EditMode, Station};
+use crate::app::{App, EditField, Station};
 
 use tui_textarea::TextArea;
 
@@ -9,20 +9,12 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::Color,
     text::Span,
-    widgets::{block::title::Title, Block, BorderType, Borders, List, ListState, Paragraph},
+    widgets::{block::title::Title, Block, BorderType, Borders, List, Paragraph},
 };
-
-#[derive(PartialEq, Eq)]
-enum UIMode {
-    Normal,
-    Edit,
-}
 
 pub struct UI<'a> {
     name_input: TextArea<'a>,
     url_input: TextArea<'a>,
-    list_state: ListState,
-    mode: UIMode,
 }
 
 impl<'a> UI<'a> {
@@ -30,19 +22,18 @@ impl<'a> UI<'a> {
         UI {
             name_input: TextArea::default(),
             url_input: TextArea::default(),
-            list_state: ListState::default(),
-            mode: UIMode::Normal,
         }
     }
 
-    pub fn update(&mut self, f: &mut ratatui::Frame, app: &App) {
-        if self.mode == UIMode::Edit {
+    pub fn update(&mut self, f: &mut ratatui::Frame, app: &mut App) {
+        self.show_list(f, app);
+        if app.is_edit_mode() {
+            self.focus_edit_field(app);
             self.show_edit(f);
         }
-        self.show_list(f, app);
     }
 
-    fn show_list(&mut self, f: &mut ratatui::Frame, app: &App) {
+    fn show_list(&mut self, f: &mut ratatui::Frame, app: &mut App) {
         let list = app
             .stations
             .iter()
@@ -74,7 +65,7 @@ impl<'a> UI<'a> {
             .constraints(constraints)
             .split(f.area());
 
-        f.render_stateful_widget(&list, layout[0], &mut self.list_state);
+        f.render_stateful_widget(&list, layout[0], &mut app.list_state);
 
         if has_title {
             f.render_widget(
@@ -112,62 +103,33 @@ impl<'a> UI<'a> {
         f.render_widget(popup_block, area);
     }
 
-    pub fn select_previous(&mut self) {
-        self.list_state.select_previous();
-    }
-
-    pub fn select_next(&mut self) {
-        self.list_state.select_next();
-    }
-
-    pub fn selected_index(&self) -> std::option::Option<usize> {
-        self.list_state.selected()
-    }
-
     pub fn begin_edit(&mut self, station: &Station) {
         self.name_input = TextArea::default();
         self.url_input = TextArea::default();
         self.name_input.insert_str(station.name.clone());
         self.url_input.insert_str(station.url.clone());
-        self.mode = UIMode::Edit;
     }
 
-    pub fn handle_edit(&mut self, app: &mut App, event: Event) {
-        match event {
-            Event::Key(key) if key.code == KeyCode::Enter => self.save_station(app),
-            Event::Key(key) if key.code == KeyCode::Tab => self.toggle_edit_field(app),
-            Event::Key(key) if key.code == KeyCode::Esc => self.exit_edit_mode(),
-            Event::Key(key) => self.update_textfields(app, key),
-            _ => {}
-        }
-    }
-
-    pub fn save_station(&mut self, app: &mut App) {
-        app.save_station();
-        self.exit_edit_mode();
-    }
-
-    fn update_textfields(&mut self, app: &App, key: KeyEvent) {
-        match app.edit_mode {
-            EditMode::Name => {
+    pub fn update_textfields(&mut self, app: &App, key: KeyEvent) {
+        match app.edit_field {
+            EditField::Name => {
                 self.name_input.input(key);
             }
-            EditMode::Url => {
+            EditField::Url => {
                 self.url_input.input(key);
             }
         };
     }
 
-    fn toggle_edit_field(&mut self, app: &mut App) {
-        app.edit_mode = app.edit_mode.toggle();
-        match app.edit_mode {
-            EditMode::Name => {
+    pub fn focus_edit_field(&mut self, app: &App) {
+        match app.edit_field {
+            EditField::Name => {
                 self.url_input
                     .set_cursor_style(self.url_input.cursor_line_style());
                 self.name_input
                     .set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
             }
-            EditMode::Url => {
+            EditField::Url => {
                 self.name_input
                     .set_cursor_style(self.name_input.cursor_line_style());
                 self.url_input
@@ -176,12 +138,12 @@ impl<'a> UI<'a> {
         };
     }
 
-    pub fn is_editing(&self) -> bool {
-        self.mode == UIMode::Edit
+    pub fn name(&self) -> String {
+        self.name_input.lines().join("")
     }
 
-    fn exit_edit_mode(&mut self) {
-        self.mode = UIMode::Normal
+    pub fn url(&self) -> String {
+        self.name_input.lines().join("")
     }
 }
 

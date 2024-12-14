@@ -4,6 +4,7 @@ use ratatui::widgets::ListItem;
 use serde::{Deserialize, Serialize};
 
 use crate::player::{Player, PlayerState};
+use ratatui::widgets::ListState;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Station {
@@ -17,16 +18,21 @@ impl<'a> From<&Station> for ListItem<'a> {
     }
 }
 
-// TODO: move to ui
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum Mode {
+    Normal,
+    Edit,
+}
+
 #[derive(Clone, Copy, Debug)]
-pub enum EditMode {
+pub enum EditField {
     Url,
     Name,
 }
 
-impl EditMode {
+impl EditField {
     pub fn toggle(&self) -> Self {
-        use EditMode::*;
+        use EditField::*;
         match self {
             Url => Name,
             Name => Url,
@@ -40,20 +46,23 @@ pub struct App {
     pub player: Player,
     pub current_station: Option<usize>,
     pub current_selection: Option<usize>,
-    pub edit_mode: EditMode,
+    pub mode: Mode,
+    pub edit_field: EditField,
+    pub list_state: ListState,
     exit: bool,
 }
 
 fn load_stations() -> Option<std::vec::Vec<Station>> {
-    let config_dir = config_local_dir()?;
-    let file_contents = std::fs::read_to_string(config_dir.join("rdo").join("stations.csv"));
-    if let Ok(stations_str) = file_contents {
-        return csv::Reader::from_reader(stations_str.as_bytes())
-            .deserialize()
-            .collect::<Result<Vec<Station>, csv::Error>>()
-            .ok();
-    }
-    None
+    config_local_dir()
+        .and_then(|config_dir| {
+            std::fs::read_to_string(config_dir.join("rdo").join("stations.csv")).ok()
+        })
+        .map(|stations_str| {
+            csv::Reader::from_reader(stations_str.as_bytes())
+                .deserialize()
+                .collect::<Result<Vec<Station>, csv::Error>>()
+                .unwrap_or(Vec::new())
+        })
 }
 
 impl App {
@@ -63,7 +72,9 @@ impl App {
             player: Player::new(),
             current_station: None,
             current_selection: Some(1),
-            edit_mode: EditMode::Name,
+            mode: Mode::Normal,
+            edit_field: EditField::Name,
+            list_state: ListState::default(),
             exit: false,
         }
     }
@@ -87,7 +98,12 @@ impl App {
         self.player.update_status()
     }
 
-    pub fn save_station(&mut self) {}
+    pub fn update_station(&mut self, index: usize, name: String, url: String) {
+        self.stations.get_mut(index).map(|station| {
+            station.name = name;
+            station.url = url;
+        });
+    }
 
     pub fn state(&self) -> PlayerState {
         self.player.state()
@@ -95,5 +111,21 @@ impl App {
 
     pub fn is_playing(&self) -> bool {
         self.player.state() == PlayerState::Playing
+    }
+
+    pub fn is_edit_mode(&self) -> bool {
+        self.mode == Mode::Edit
+    }
+
+    pub fn select_previous(&mut self) {
+        self.list_state.select_previous();
+    }
+
+    pub fn select_next(&mut self) {
+        self.list_state.select_next();
+    }
+
+    pub fn selected_index(&self) -> std::option::Option<usize> {
+        self.list_state.selected()
     }
 }

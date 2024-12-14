@@ -33,37 +33,51 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         app.update_status();
 
         terminal.draw(|f| {
-            ui.update(f, &app);
+            ui.update(f, &mut app);
         })?;
 
         match event::poll(Duration::from_millis(100)) {
             Ok(true) => {
-                if ui.is_editing() {
-                    ui.handle_edit(&mut app, event::read()?);
-                } else if let Event::Key(key) = event::read()? {
-                    match key.code {
-                        KeyCode::Char('q') => {
-                            app.exit();
-                            return Ok(());
+                if let Event::Key(key) = event::read()? {
+                    if app.is_edit_mode() {
+                        match key.code {
+                            KeyCode::Enter => {
+                                app.selected_index()
+                                    .map(|i| app.update_station(i, ui.name(), ui.url()));
+                                app.mode = app::Mode::Normal
+                            }
+                            KeyCode::Tab => {
+                                app.edit_field = app.edit_field.toggle();
+                            }
+                            KeyCode::Esc => app.mode = app::Mode::Normal,
+                            _ => ui.update_textfields(&app, key),
                         }
-                        KeyCode::Char('e') => {
-                            ui.selected_index()
-                                .and_then(|i| app.stations.get(i).cloned())
-                                .map(|station| ui.begin_edit(&station));
+                    } else {
+                        match key.code {
+                            KeyCode::Char('q') => {
+                                app.exit();
+                                return Ok(());
+                            }
+                            KeyCode::Char('e') => {
+                                app.selected_index()
+                                    .and_then(|i| app.stations.get(i).cloned())
+                                    .map(|station| ui.begin_edit(&station));
+                                app.mode = app::Mode::Edit
+                            }
+                            KeyCode::Up => app.select_previous(),
+                            KeyCode::Down => {
+                                app.select_next();
+                            }
+                            KeyCode::Enter => {
+                                if let Some(selected) = app.selected_index() {
+                                    app.change_station(selected);
+                                };
+                            }
+                            KeyCode::Char(' ') => {
+                                app.stop();
+                            }
+                            _ => {}
                         }
-                        KeyCode::Up => ui.select_previous(),
-                        KeyCode::Down => {
-                            ui.select_next();
-                        }
-                        KeyCode::Enter => {
-                            if let Some(selected) = ui.selected_index() {
-                                app.change_station(selected);
-                            };
-                        }
-                        KeyCode::Char(' ') => {
-                            app.stop();
-                        }
-                        _ => {}
                     }
                 }
             }
