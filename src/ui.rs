@@ -104,6 +104,12 @@ impl<'a> UI<'a> {
     }
 
     pub fn begin_edit(&mut self, station: &Station) {
+        self.name_input.set_cursor_line_style(Style::default());
+        self.name_input.set_placeholder_text("Name");
+        self.url_input.set_cursor_line_style(Style::default());
+        self.url_input
+            .set_cursor_style(self.name_input.cursor_line_style());
+        self.url_input.set_placeholder_text("URL");
         self.name_input = TextArea::default();
         self.url_input = TextArea::default();
         self.name_input.insert_str(station.name.clone());
@@ -143,7 +149,7 @@ impl<'a> UI<'a> {
     }
 
     pub fn url(&self) -> String {
-        self.name_input.lines().join("")
+        self.url_input.lines().join("")
     }
 }
 

@@ -23,12 +23,6 @@ fn main() -> io::Result<()> {
 fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut app = app::App::new();
     let mut ui = ui::UI::new();
-    // name_input.set_cursor_line_style(Style::default());
-    // name_input.set_placeholder_text("Name");
-    // url_input.set_cursor_line_style(Style::default());
-    // url_input.set_cursor_style(name_input.cursor_line_style());
-    // url_input.set_placeholder_text("URL");
-    // list_state.select(app.current_selection);
     loop {
         app.update_status();
 

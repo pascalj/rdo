@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use dirs::config_local_dir;
 use ratatui::widgets::ListItem;
 
@@ -52,11 +54,13 @@ pub struct App {
     exit: bool,
 }
 
+fn config_file() -> std::option::Option<PathBuf> {
+    config_local_dir().map(|config_dir| config_dir.join("rdo").join("stations.csv"))
+}
+
 fn load_stations() -> Option<std::vec::Vec<Station>> {
-    config_local_dir()
-        .and_then(|config_dir| {
-            std::fs::read_to_string(config_dir.join("rdo").join("stations.csv")).ok()
-        })
+    config_file()
+        .and_then(|file_path| std::fs::read_to_string(file_path).ok())
         .map(|stations_str| {
             csv::Reader::from_reader(stations_str.as_bytes())
                 .deserialize()
@@ -102,6 +106,20 @@ impl App {
         self.stations.get_mut(index).map(|station| {
             station.name = name;
             station.url = url;
+        });
+        self.save_stations()
+    }
+
+    fn save_stations(&self) {
+        config_file().and_then(|file_path| {
+            let mut writer = csv::Writer::from_path(file_path).ok()?;
+
+            for station in self.stations.clone() {
+                writer.serialize(station).ok()?;
+            }
+
+            writer.flush().ok()?;
+            Some(())
         });
     }
 
