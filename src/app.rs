@@ -12,6 +12,12 @@ pub struct Station {
     pub url: String,
 }
 
+impl Station {
+    pub fn new(name: String, url: String) -> Self {
+        Station { name, url }
+    }
+}
+
 impl<'a> From<&Station> for ListItem<'a> {
     fn from(val: &Station) -> Self {
         ListItem::new(val.name.clone())
@@ -22,6 +28,8 @@ impl<'a> From<&Station> for ListItem<'a> {
 pub enum Mode {
     Normal,
     Edit,
+    Add,
+    Exit,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,29 +56,45 @@ pub struct App {
     pub mode: Mode,
     pub edit_field: EditField,
     pub list_state: ListState,
-    exit: bool,
 }
 
-fn config_file() -> std::option::Option<PathBuf> {
-    config_local_dir().map(|config_dir| config_dir.join("rdo").join("stations.csv"))
-}
-
-fn load_stations() -> Option<std::vec::Vec<Station>> {
-    config_file()
-        .and_then(|file_path| std::fs::read_to_string(file_path).ok())
+// Load stations from the configuration
+fn load_stations(path: PathBuf) -> Option<std::vec::Vec<Station>> {
+    std::fs::read_to_string(path)
         .map(|stations_str| {
             csv::Reader::from_reader(stations_str.as_bytes())
                 .deserialize()
                 .collect::<Result<Vec<Station>, csv::Error>>()
-                .unwrap_or(Vec::new())
+                .unwrap_or(vec![])
         })
+        .ok()
 }
 
+// Path to station.csv
+pub fn station_file_path() -> std::option::Option<PathBuf> {
+    config_local_dir().map(|config_dir| config_dir.join("rdo").join("stations.csv"))
+}
+
+impl Default for App {
+    fn default() -> Self {
+        App {
+            stations: vec![],
+            player: Player::new(),
+            current_station: None,
+            mode: Mode::Normal,
+            edit_field: EditField::Name,
+            list_state: ListState::default(),
+        }
+    }
+}
+
+// The app state and operations
 impl App {
-    pub fn new() -> Self {
-        let stations = load_stations().unwrap_or(vec![]);
+    // Create a new app and load stations from `stations_path`.
+    pub fn new(stations_path: PathBuf) -> Self {
+        let stations = load_stations(stations_path).unwrap_or(vec![]);
         let mut list_state = ListState::default();
-        list_state.select(if stations.is_empty() { None } else { Some(0) });
+        list_state.select_first();
         App {
             stations,
             player: Player::new(),
@@ -78,18 +102,14 @@ impl App {
             mode: Mode::Normal,
             edit_field: EditField::Name,
             list_state,
-            exit: false,
         }
-    }
-
-    pub fn exit(&mut self) {
-        self.exit = true;
     }
 
     pub fn change_station(&mut self) {
         self.selected_index()
             .and_then(|i| self.stations.get(i))
             .map(|station| self.player.play(station));
+        self.current_station = self.selected_index();
     }
 
     pub fn stop(&mut self) {
@@ -108,8 +128,13 @@ impl App {
         self.save_stations()
     }
 
+    pub fn add_station(&mut self, station: Station) {
+        self.stations.push(station);
+        self.save_stations()
+    }
+
     fn save_stations(&self) {
-        config_file().and_then(|file_path| {
+        station_file_path().and_then(|file_path| {
             let mut writer = csv::Writer::from_path(file_path).ok()?;
 
             for station in self.stations.clone() {
@@ -127,6 +152,10 @@ impl App {
 
     pub fn is_edit_mode(&self) -> bool {
         self.mode == Mode::Edit
+    }
+
+    pub fn is_add_mode(&self) -> bool {
+        self.mode == Mode::Add
     }
 
     pub fn select_previous(&mut self) {

@@ -1,31 +1,42 @@
+mod app;
+mod player;
+mod ui;
+
+use app::{station_file_path, App, Mode};
+use ui::UI;
+
 use ratatui::{
     backend::Backend,
-    crossterm::event::{self, Event, KeyCode},
+    crossterm::event::{self, Event, KeyCode, KeyEvent},
     crossterm::terminal::{disable_raw_mode, enable_raw_mode},
     Terminal,
 };
 use std::{io, time::Duration};
 
-mod app;
-mod player;
-mod ui;
-
+// Main function
 fn main() -> io::Result<()> {
     let mut terminal = ratatui::init();
     enable_raw_mode()?;
     terminal.clear()?;
-    let app_result = run_app(&mut terminal);
+    let app_result = run_loop(&mut terminal);
     ratatui::restore();
     disable_raw_mode()?;
     app_result
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
-    let mut app = app::App::new();
-    let mut ui = ui::UI::new();
+// Run the main application loop (read inputs, update, display)
+fn run_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
+    let mut app = station_file_path()
+        .map(|path| App::new(path))
+        .unwrap_or(App::default());
+    let mut ui = UI::new();
 
     loop {
         app.update_status();
+
+        if app.mode == Mode::Exit {
+            return Ok(());
+        }
 
         terminal.draw(|f| {
             ui.update(f, &mut app);
@@ -34,48 +45,59 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         match event::poll(Duration::from_millis(100)) {
             Ok(true) => {
                 if let Event::Key(key) = event::read()? {
-                    if app.is_edit_mode() {
-                        match key.code {
-                            KeyCode::Enter => {
-                                app.selected_index()
-                                    .map(|i| app.update_station(i, ui.name(), ui.url()));
-                                app.mode = app::Mode::Normal
-                            }
-                            KeyCode::Tab => {
-                                app.edit_field = app.edit_field.toggle();
-                            }
-                            KeyCode::Esc => app.mode = app::Mode::Normal,
-                            _ => ui.update_textfields(&app, key),
-                        }
+                    if app.is_add_mode() || app.is_edit_mode() {
+                        handle_edit_mode(&mut app, &mut ui, key);
                     } else {
-                        match key.code {
-                            KeyCode::Char('q') => {
-                                app.exit();
-                                return Ok(());
-                            }
-                            KeyCode::Char('e') => {
-                                app.selected_index()
-                                    .and_then(|i| app.stations.get(i).cloned())
-                                    .map(|station| ui.begin_edit(&station));
-                                app.mode = app::Mode::Edit
-                            }
-                            KeyCode::Up => app.select_previous(),
-                            KeyCode::Down => {
-                                app.select_next();
-                            }
-                            KeyCode::Enter => {
-                                app.change_station();
-                            }
-                            KeyCode::Char(' ') => {
-                                app.stop();
-                            }
-                            _ => {}
-                        }
+                        handle_normal_mode(&mut app, &mut ui, key);
                     }
                 }
             }
             Ok(false) => {}
+            // Unhandled errors
             Err(_) => {}
         }
     }
+}
+
+// Handle inputs in the edit mode and update the app state accordingly
+fn handle_edit_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) {
+    match key.code {
+        KeyCode::Enter => {
+            app.selected_index().map(|i| match app.mode {
+                Mode::Add => app.add_station(app::Station::new(ui.name(), ui.url())),
+                Mode::Edit => app.update_station(i, ui.name(), ui.url()),
+                _ => {}
+            });
+            app.mode = Mode::Normal
+        }
+        KeyCode::Tab => {
+            app.edit_field = app.edit_field.toggle();
+        }
+        KeyCode::Esc => app.mode = Mode::Normal,
+        _ => ui.update_textfields(&app, key),
+    }
+}
+
+// Handle inputs in normal mode and update the app state accordingly
+fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) {
+    match key.code {
+        KeyCode::Char('e') => {
+            app.selected_index()
+                .and_then(|i| app.stations.get(i).cloned())
+                .map(|station| {
+                    ui.init_edit();
+                    ui.fill_edit_form(&station)
+                });
+            app.mode = Mode::Edit
+        }
+        KeyCode::Char('q') => app.mode = Mode::Exit,
+        KeyCode::Char('n') => app.mode = Mode::Add,
+        KeyCode::Char('k') => app.select_previous(),
+        KeyCode::Char('j') => app.select_next(),
+        KeyCode::Char(' ') => app.stop(),
+        KeyCode::Enter => app.change_station(),
+        KeyCode::Up => app.select_previous(),
+        KeyCode::Down => app.select_next(),
+        _ => {}
+    };
 }

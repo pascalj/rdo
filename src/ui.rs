@@ -12,12 +12,14 @@ use ratatui::{
     widgets::{block::title::Title, Block, BorderType, Borders, List, Paragraph},
 };
 
+// Representation of the UI elements
 pub struct UI<'a> {
     name_input: TextArea<'a>,
     url_input: TextArea<'a>,
 }
 
 impl<'a> UI<'a> {
+    // Create a new blank UI element
     pub fn new() -> UI<'a> {
         UI {
             name_input: TextArea::default(),
@@ -25,14 +27,16 @@ impl<'a> UI<'a> {
         }
     }
 
+    // Update the UI given an app and draw it into a frame
     pub fn update(&mut self, f: &mut ratatui::Frame, app: &mut App) {
         self.show_list(f, app);
-        if app.is_edit_mode() {
+        if app.is_add_mode() || app.is_edit_mode() {
             self.focus_edit_field(app);
             self.show_edit(f);
         }
     }
 
+    // Show the list of stations. Uses the app's list state to select items.
     fn show_list(&mut self, f: &mut ratatui::Frame, app: &mut App) {
         let list = app
             .stations
@@ -103,7 +107,7 @@ impl<'a> UI<'a> {
         f.render_widget(popup_block, area);
     }
 
-    pub fn begin_edit(&mut self, station: &Station) {
+    pub fn init_edit(&mut self) {
         self.name_input.set_cursor_line_style(Style::default());
         self.name_input.set_placeholder_text("Name");
         self.url_input.set_cursor_line_style(Style::default());
@@ -112,6 +116,9 @@ impl<'a> UI<'a> {
         self.url_input.set_placeholder_text("URL");
         self.name_input = TextArea::default();
         self.url_input = TextArea::default();
+    }
+
+    pub fn fill_edit_form(&mut self, station: &Station) {
         self.name_input.insert_str(station.name.clone());
         self.url_input.insert_str(station.url.clone());
     }
