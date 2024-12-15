@@ -48,7 +48,6 @@ impl EditField {
     }
 }
 
-#[derive(Debug)]
 pub struct App {
     pub stations: Vec<Station>,
     pub player: Player,
@@ -105,6 +104,7 @@ impl App {
         }
     }
 
+    // Change the currently playing station
     pub fn change_station(&mut self) {
         self.selected_index()
             .and_then(|i| self.stations.get(i))
@@ -112,14 +112,17 @@ impl App {
         self.current_station = self.selected_index();
     }
 
+    // Stop playing
     pub fn stop(&mut self) {
         self.player.stop()
     }
 
+    // Update the player's status from the underlying player
     pub fn update_status(&mut self) {
         self.player.update_status()
     }
 
+    // Update a station with a new name
     pub fn update_station(&mut self, index: usize, name: String, url: String) {
         self.stations.get_mut(index).map(|station| {
             station.name = name;
@@ -128,11 +131,13 @@ impl App {
         self.save_stations()
     }
 
+    // Add a new station at the end of the list
     pub fn add_station(&mut self, station: Station) {
         self.stations.push(station);
         self.save_stations()
     }
 
+    // Save the current set of stations to the station file path
     fn save_stations(&self) {
         station_file_path().and_then(|file_path| {
             let mut writer = csv::Writer::from_path(file_path).ok()?;
@@ -146,26 +151,32 @@ impl App {
         });
     }
 
+    // Is the player currently playing?
     pub fn is_playing(&self) -> bool {
         self.player.state() == PlayerState::Playing
     }
 
+    // Is the app in edit mode?
     pub fn is_edit_mode(&self) -> bool {
         self.mode == Mode::Edit
     }
 
+    // Is the app in add mode?
     pub fn is_add_mode(&self) -> bool {
         self.mode == Mode::Add
     }
 
+    // Select the previous station
     pub fn select_previous(&mut self) {
         self.list_state.select_previous();
     }
 
+    // Select the next station
     pub fn select_next(&mut self) {
         self.list_state.select_next();
     }
 
+    // Return the currently selected station's index
     pub fn selected_index(&self) -> std::option::Option<usize> {
         self.list_state.selected()
     }
