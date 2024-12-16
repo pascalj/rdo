@@ -58,15 +58,13 @@ pub struct App {
 }
 
 // Load stations from the configuration
-fn load_stations(path: PathBuf) -> Option<std::vec::Vec<Station>> {
-    std::fs::read_to_string(path)
-        .map(|stations_str| {
-            csv::Reader::from_reader(stations_str.as_bytes())
-                .deserialize()
-                .collect::<Result<Vec<Station>, csv::Error>>()
-                .unwrap_or(vec![])
-        })
-        .ok()
+fn load_stations(path: PathBuf) -> std::io::Result<std::vec::Vec<Station>> {
+    std::fs::read_to_string(path).map(|stations_str| {
+        csv::Reader::from_reader(stations_str.as_bytes())
+            .deserialize()
+            .collect::<Result<Vec<Station>, csv::Error>>()
+            .unwrap_or(vec![])
+    })
 }
 
 // Path to station.csv
@@ -123,7 +121,12 @@ impl App {
     }
 
     // Update a station with a new name
-    pub fn update_station(&mut self, index: usize, name: String, url: String) {
+    pub fn update_station(
+        &mut self,
+        index: usize,
+        name: String,
+        url: String,
+    ) -> std::io::Result<()> {
         self.stations.get_mut(index).map(|station| {
             station.name = name;
             station.url = url;
@@ -132,23 +135,23 @@ impl App {
     }
 
     // Add a new station at the end of the list
-    pub fn add_station(&mut self, station: Station) {
+    pub fn add_station(&mut self, station: Station) -> std::io::Result<()> {
         self.stations.push(station);
         self.save_stations()
     }
 
     // Save the current set of stations to the station file path
-    fn save_stations(&self) {
-        station_file_path().and_then(|file_path| {
-            let mut writer = csv::Writer::from_path(file_path).ok()?;
+    fn save_stations(&self) -> std::io::Result<()> {
+        let file_path =
+            station_file_path().ok_or(std::io::Error::other("Could not find station path"))?;
+        let mut writer = csv::Writer::from_path(file_path)?;
 
-            for station in self.stations.clone() {
-                writer.serialize(station).ok()?;
-            }
+        for station in self.stations.clone() {
+            writer.serialize(station)?;
+        }
 
-            writer.flush().ok()?;
-            Some(())
-        });
+        writer.flush()?;
+        Ok(())
     }
 
     // Is the player currently playing?

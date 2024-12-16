@@ -434,6 +434,7 @@ dependencies = [
  "csv",
  "dirs",
  "libmpv2",
+ "log",
  "ratatui",
  "serde",
  "tui-textarea",
