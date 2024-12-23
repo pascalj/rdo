@@ -1,7 +1,7 @@
 use ratatui::crossterm::event::KeyEvent;
 use ratatui::style::{Modifier, Style};
 
-use crate::app::{App, EditField, Station};
+use crate::app::{App, EditField, Mode, Station};
 
 use tui_textarea::TextArea;
 
@@ -30,7 +30,7 @@ impl<'a> UI<'a> {
     // Update the UI given an app and draw it into a frame
     pub fn update(&mut self, f: &mut ratatui::Frame, app: &mut App) {
         self.show_list(f, app);
-        if app.is_add_mode() || app.is_edit_mode() {
+        if app.mode == Mode::Add || app.mode == Mode::Edit{
             self.focus_edit_field(app);
             self.show_edit(f);
         }

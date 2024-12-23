@@ -49,10 +49,10 @@ fn run_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         match event::poll(Duration::from_millis(100)) {
             Ok(true) => {
                 if let Event::Key(key) = event::read()? {
-                    if app.is_add_mode() || app.is_edit_mode() {
-                        handle_edit_mode(&mut app, &mut ui, key)?;
-                    } else {
-                        handle_normal_mode(&mut app, &mut ui, key)?;
+                    match app.mode {
+                        Mode::Add | Mode::Edit => handle_edit_mode(&mut app, &mut ui, key)?,
+                        Mode::Delete => handle_delete_mode(&mut app, &mut ui, key)?,
+                        _ => handle_normal_mode(&mut app, &mut ui, key)?,
                     }
                 }
             }
@@ -106,6 +106,7 @@ fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io:
                 });
             app.mode = Mode::Edit
         }
+        KeyCode::Char('d') => app.mode = Mode::Delete,
         KeyCode::Char('q') => app.mode = Mode::Exit,
         KeyCode::Char('n') => app.mode = Mode::Add,
         KeyCode::Char('k') => app.select_previous(),
@@ -114,6 +115,19 @@ fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io:
         KeyCode::Enter => app.change_station(),
         KeyCode::Up => app.select_previous(),
         KeyCode::Down => app.select_next(),
+        _ => {}
+    };
+    Ok(())
+}
+
+fn handle_delete_mode(app: &mut app::App, _: &mut ui::UI, key: KeyEvent) -> io::Result<()> {
+    match key.code {
+        KeyCode::Esc => app.mode = Mode::Normal,
+        KeyCode::Enter => {
+            if let Some(index) = app.selected_index() {
+                app.delete_station(index);
+            }
+        }
         _ => {}
     };
     Ok(())

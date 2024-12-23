@@ -29,6 +29,7 @@ pub enum Mode {
     Normal,
     Edit,
     Add,
+    Delete,
     Exit,
 }
 
@@ -140,6 +141,10 @@ impl App {
         self.save_stations()
     }
 
+    pub fn delete_station(&mut self, index: usize) -> Station {
+        self.stations.remove(index)
+    }
+
     // Save the current set of stations to the station file path
     fn save_stations(&self) -> std::io::Result<()> {
         let file_path =
@@ -157,16 +162,6 @@ impl App {
     // Is the player currently playing?
     pub fn is_playing(&self) -> bool {
         self.player.state() == PlayerState::Playing
-    }
-
-    // Is the app in edit mode?
-    pub fn is_edit_mode(&self) -> bool {
-        self.mode == Mode::Edit
-    }
-
-    // Is the app in add mode?
-    pub fn is_add_mode(&self) -> bool {
-        self.mode == Mode::Add
     }
 
     // Select the previous station
