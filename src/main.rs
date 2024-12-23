@@ -74,21 +74,18 @@ fn handle_edit_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io::R
             }
 
             app.mode = Mode::Normal;
-            Ok(())
         }
         KeyCode::Tab => {
             app.edit_field = app.edit_field.toggle();
-            Ok(())
         }
         KeyCode::Esc => {
             app.mode = Mode::Normal;
-            Ok(())
         }
         _ => {
             ui.update_textfields(&app, key);
-            Ok(())
         }
-    }
+    };
+    Ok(())
 }
 
 // Handle inputs in normal mode and update the app state accordingly
