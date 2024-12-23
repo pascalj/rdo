@@ -181,12 +181,17 @@ impl App {
         self.list_state.selected()
     }
 
-    pub fn move_station(&mut self, index: usize, with: Option<usize>) {
-        if let (Some(_), Some(to)) = (
-            self.stations.get(index),
-            with.filter(|i| self.stations.get(i.clone()).is_some()),
-        ) {
-            self.stations.swap(index, to);
+    // Swap two stations
+    pub fn swap_station(&mut self, index: usize, with: usize) -> std::io::Result<()> {
+        if self.stations.get(index).is_some() && self.stations.get(with).is_some() {
+            self.current_station = match self.current_station {
+                Some(i) if i == index => Some(with),
+                Some(i) if i == with => Some(index),
+                _ => self.current_station,
+            };
+            self.stations.swap(index, with);
+            self.save_stations()?;
         }
+        Ok(())
     }
 }

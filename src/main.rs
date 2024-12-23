@@ -42,24 +42,20 @@ fn run_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             return Ok(());
         }
 
+
+        if event::poll(Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                match app.mode {
+                    Mode::Add | Mode::Edit(_) => handle_edit_mode(&mut app, &mut ui, key)?,
+                    Mode::Delete(_) => handle_delete_mode(&mut app, &mut ui, key)?,
+                    _ => handle_normal_mode(&mut app, &mut ui, key)?,
+                }
+            }
+        }
+
         terminal.draw(|f| {
             ui.update(f, &mut app);
         })?;
-
-        match event::poll(Duration::from_millis(100)) {
-            Ok(true) => {
-                if let Event::Key(key) = event::read()? {
-                    match app.mode {
-                        Mode::Add | Mode::Edit(_) => handle_edit_mode(&mut app, &mut ui, key)?,
-                        Mode::Delete(_) => handle_delete_mode(&mut app, &mut ui, key)?,
-                        _ => handle_normal_mode(&mut app, &mut ui, key)?,
-                    }
-                }
-            }
-            Ok(false) => {}
-            // Unhandled errors
-            Err(_) => {}
-        }
     }
 }
 
@@ -103,12 +99,12 @@ fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io:
         (KeyCode::Char('n'), _) => app.mode = Mode::Add,
         (KeyCode::Char('k'), _) => app.select_previous(),
         (KeyCode::Char('K'), Some(i)) => {
-            app.move_station(i, i.checked_sub(1));
+            app.swap_station(i, i.checked_sub(1).unwrap_or(i))?;
             app.select_previous()
         }
         (KeyCode::Char('j'), _) => app.select_next(),
         (KeyCode::Char('J'), Some(i)) => {
-            app.move_station(i, i.checked_add(1));
+            app.swap_station(i, i.checked_add(1).unwrap_or(i))?;
             app.select_next()
         }
         (KeyCode::Char(' '), _) => app.stop(),
