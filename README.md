@@ -14,11 +14,13 @@ nix run github:pascalj/rdo
 
 ## Keymap
 
-- Enter: play currently selected station
+- Enter: play selected station
 - Space: stop playing
 - `j`/`k`: select stations
+- `J`/`K`: move selected station
 - `n`: new station
 - `e`: edit selected station
+- `d`: delete selected station
 - `q`: quit
 
 ## Stations
