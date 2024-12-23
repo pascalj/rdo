@@ -27,9 +27,9 @@ impl<'a> From<&Station> for ListItem<'a> {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Mode {
     Normal,
-    Edit,
+    Edit(usize),
     Add,
-    Delete,
+    Delete(usize),
     Exit,
 }
 
@@ -104,9 +104,9 @@ impl App {
     }
 
     // Change the currently playing station
-    pub fn change_station(&mut self) {
-        self.selected_index()
-            .and_then(|i| self.stations.get(i))
+    pub fn change_station(&mut self, index: usize) {
+        self.stations
+            .get(index)
             .map(|station| self.player.play(station));
         self.current_station = self.selected_index();
     }
@@ -141,8 +141,9 @@ impl App {
         self.save_stations()
     }
 
-    pub fn delete_station(&mut self, index: usize) -> Station {
-        self.stations.remove(index)
+    pub fn delete_station(&mut self, index: usize) -> std::io::Result<()> {
+        self.stations.remove(index);
+        self.save_stations()
     }
 
     // Save the current set of stations to the station file path

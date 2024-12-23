@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::Color,
     text::Span,
-    widgets::{block::title::Title, Block, BorderType, Borders, List, Paragraph},
+    widgets::{block::title::Title, Block, BorderType, Borders, Clear, List, Padding, Paragraph},
 };
 
 // Representation of the UI elements
@@ -30,10 +30,37 @@ impl<'a> UI<'a> {
     // Update the UI given an app and draw it into a frame
     pub fn update(&mut self, f: &mut ratatui::Frame, app: &mut App) {
         self.show_list(f, app);
-        if app.mode == Mode::Add || app.mode == Mode::Edit{
-            self.focus_edit_field(app);
-            self.show_edit(f);
+        match app.mode {
+            Mode::Add | Mode::Edit(_) => {
+                self.focus_edit_field(app);
+                self.show_edit(f);
+            }
+            Mode::Delete(index) => self.show_confirm_delete(app, f, index),
+            _ => {}
         }
+    }
+
+    fn show_confirm_delete(&mut self, app: &App, f: &mut ratatui::Frame, index: usize) {
+        let area = centered_rect(60, 15, f.area());
+        let name = app
+            .stations
+            .get(index)
+            .map(|station| station.name.clone())
+            .unwrap_or("Invalid station".to_string());
+        let message = format!(
+            "Do you really want to delete '{}'? Press <enter> to confirm. Press <esc> to cancel.",
+            name
+        );
+        let block = Paragraph::new(message)
+            .block(Block::bordered().title("Delete?").padding(Padding::new(
+                0,
+                0,
+                area.height / 2 - 1,
+                0,
+            )))
+            .centered();
+        f.render_widget(Clear, area);
+        f.render_widget(block, area);
     }
 
     // Show the list of stations. Uses the app's list state to select items.
@@ -73,7 +100,13 @@ impl<'a> UI<'a> {
 
         if has_title {
             f.render_widget(
-                Paragraph::new(app.player.current_title.clone().unwrap_or(" - ".to_owned())).block(
+                Paragraph::new(
+                    app.player
+                        .current_title
+                        .clone()
+                        .unwrap_or(" - ".to_string()),
+                )
+                .block(
                     Block::new()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded),

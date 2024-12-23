@@ -50,8 +50,8 @@ fn run_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             Ok(true) => {
                 if let Event::Key(key) = event::read()? {
                     match app.mode {
-                        Mode::Add | Mode::Edit => handle_edit_mode(&mut app, &mut ui, key)?,
-                        Mode::Delete => handle_delete_mode(&mut app, &mut ui, key)?,
+                        Mode::Add | Mode::Edit(_) => handle_edit_mode(&mut app, &mut ui, key)?,
+                        Mode::Delete(_) => handle_delete_mode(&mut app, &mut ui, key)?,
                         _ => handle_normal_mode(&mut app, &mut ui, key)?,
                     }
                 }
@@ -69,10 +69,7 @@ fn handle_edit_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io::R
         KeyCode::Enter => {
             match app.mode {
                 Mode::Add => app.add_station(app::Station::new(ui.name(), ui.url()))?,
-                Mode::Edit => app
-                    .selected_index()
-                    .ok_or(std::io::Error::other("Index not found"))
-                    .and_then(|i| app.update_station(i, ui.name(), ui.url()))?,
+                Mode::Edit(i) => app.update_station(i, ui.name(), ui.url())?,
                 _ => (),
             }
 
@@ -96,25 +93,23 @@ fn handle_edit_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io::R
 
 // Handle inputs in normal mode and update the app state accordingly
 fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io::Result<()> {
-    match key.code {
-        KeyCode::Char('e') => {
-            app.selected_index()
-                .and_then(|i| app.stations.get(i).cloned())
-                .map(|station| {
-                    ui.init_edit();
-                    ui.fill_edit_form(&station)
-                });
-            app.mode = Mode::Edit
+    match (key.code, app.selected_index()) {
+        (KeyCode::Char('e'), Some(i)) => {
+            if let Some(station) = app.stations.get(i) {
+                ui.init_edit();
+                ui.fill_edit_form(&station);
+                app.mode = Mode::Edit(i);
+            }
         }
-        KeyCode::Char('d') => app.mode = Mode::Delete,
-        KeyCode::Char('q') => app.mode = Mode::Exit,
-        KeyCode::Char('n') => app.mode = Mode::Add,
-        KeyCode::Char('k') => app.select_previous(),
-        KeyCode::Char('j') => app.select_next(),
-        KeyCode::Char(' ') => app.stop(),
-        KeyCode::Enter => app.change_station(),
-        KeyCode::Up => app.select_previous(),
-        KeyCode::Down => app.select_next(),
+        (KeyCode::Char('d'), Some(i)) => app.mode = Mode::Delete(i),
+        (KeyCode::Char('q'), _) => app.mode = Mode::Exit,
+        (KeyCode::Char('n'), _) => app.mode = Mode::Add,
+        (KeyCode::Char('k'), _) => app.select_previous(),
+        (KeyCode::Char('j'), _) => app.select_next(),
+        (KeyCode::Char(' '), _) => app.stop(),
+        (KeyCode::Enter, Some(i)) => app.change_station(i),
+        (KeyCode::Up, _) => app.select_previous(),
+        (KeyCode::Down, _) => app.select_next(),
         _ => {}
     };
     Ok(())
@@ -125,8 +120,9 @@ fn handle_delete_mode(app: &mut app::App, _: &mut ui::UI, key: KeyEvent) -> io::
         KeyCode::Esc => app.mode = Mode::Normal,
         KeyCode::Enter => {
             if let Some(index) = app.selected_index() {
-                app.delete_station(index);
+                app.delete_station(index)?;
             }
+            app.mode = Mode::Normal
         }
         _ => {}
     };
