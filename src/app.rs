@@ -141,6 +141,7 @@ impl App {
         self.save_stations()
     }
 
+    // Delete a station persistently
     pub fn delete_station(&mut self, index: usize) -> std::io::Result<()> {
         self.stations.remove(index);
         self.save_stations()
@@ -178,5 +179,14 @@ impl App {
     // Return the currently selected station's index
     pub fn selected_index(&self) -> std::option::Option<usize> {
         self.list_state.selected()
+    }
+
+    pub fn move_station(&mut self, index: usize, with: Option<usize>) {
+        if let (Some(_), Some(to)) = (
+            self.stations.get(index),
+            with.filter(|i| self.stations.get(i.clone()).is_some()),
+        ) {
+            self.stations.swap(index, to);
+        }
     }
 }

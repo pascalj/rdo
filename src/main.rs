@@ -105,7 +105,15 @@ fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io:
         (KeyCode::Char('q'), _) => app.mode = Mode::Exit,
         (KeyCode::Char('n'), _) => app.mode = Mode::Add,
         (KeyCode::Char('k'), _) => app.select_previous(),
+        (KeyCode::Char('K'), Some(i)) => {
+            app.move_station(i, i.checked_sub(1));
+            app.select_previous()
+        }
         (KeyCode::Char('j'), _) => app.select_next(),
+        (KeyCode::Char('J'), Some(i)) => {
+            app.move_station(i, i.checked_add(1));
+            app.select_next()
+        }
         (KeyCode::Char(' '), _) => app.stop(),
         (KeyCode::Enter, Some(i)) => app.change_station(i),
         (KeyCode::Up, _) => app.select_previous(),
