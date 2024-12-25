@@ -1,5 +1,5 @@
 use dirs::config_local_dir;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use ratatui::widgets::{ListItem, ListState};
 use serde::{Deserialize, Serialize};
