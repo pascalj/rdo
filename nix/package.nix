@@ -1,24 +1,21 @@
-{ lib, mpv, rustPlatform, ... }:
-rustPlatform.buildRustPackage {
+{
+  lib,
+  mpv,
+  rustPlatform,
+  ...
+}:
+rustPlatform.buildRustPackage rec {
   pname = "rdo";
-  version = "0.0.1";
+  version = "0.3.1";
 
-  src = ./..;
+  src = lib.cleanSource ./..;
 
-  cargoLock = {
-    lockFile = ./../Cargo.lock;
-  };
+  cargoLock.lockFile = "${src}/Cargo.lock";
 
   buildInputs = [ mpv ];
-  nativeBuildInputs = [ mpv ];
-
-  # postFixup = ''
-  #   wrapProgram $out/bin/rdo \
-  #     --set PATH ${lib.makeBinPath [mpv]}
-  # '';
 
   meta = {
-    description = "Small CLI for radio listening";
+    description = "a TUI internet radio client";
     homepage = "https://github.com/pascalj/rdo";
     license = lib.licenses.mit;
     maintainers = [ ];

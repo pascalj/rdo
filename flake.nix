@@ -1,5 +1,5 @@
 {
-  description = "rdo-cli: a TUI radio client";
+  description = "rdo: a TUI internet radio client";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -9,7 +9,6 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       rust-overlay,
       flake-utils,
@@ -33,13 +32,9 @@
           with pkgs;
           mkShell {
             buildInputs = [
-              pkg-config
               mpv
-              gdb
               rust-bin.stable.latest.default
             ];
-
-            shellHook = "";
           };
         formatter = pkgs.nixfmt-rfc-style;
       }
