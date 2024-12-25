@@ -56,6 +56,7 @@ pub struct App {
     pub mode: Mode,
     pub edit_field: EditField,
     pub list_state: ListState,
+    pub player_state: PlayerState,
 }
 
 // Load stations from the configuration
@@ -82,6 +83,7 @@ impl Default for App {
             mode: Mode::Normal,
             edit_field: EditField::Name,
             list_state: ListState::default(),
+            player_state: PlayerState::default(),
         }
     }
 }
@@ -100,6 +102,7 @@ impl App {
             mode: Mode::Normal,
             edit_field: EditField::Name,
             list_state,
+            player_state: PlayerState::default(),
         }
     }
 
@@ -118,7 +121,9 @@ impl App {
 
     // Update the player's status from the underlying player
     pub fn update_status(&mut self) {
-        self.player.update_status()
+        if let Some(state) = self.player.update_status() {
+            self.player_state = state;
+        }
     }
 
     // Update a station with a new name
@@ -167,7 +172,10 @@ impl App {
 
     // Is the player currently playing?
     pub fn is_playing(&self) -> bool {
-        self.player.state() == PlayerState::Playing
+        match self.player_state {
+            PlayerState::Playing(_) => true,
+            _ => false,
+        }
     }
 
     // Select the previous station

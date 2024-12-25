@@ -2,11 +2,17 @@ use crate::app::Station;
 
 use libmpv2::{events::*, *};
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone)]
 pub enum PlayerState {
-    Playing,
+    Playing(String),
     Stopped,
     Buffering,
+}
+
+impl Default for PlayerState {
+    fn default() -> PlayerState {
+        PlayerState::Stopped
+    }
 }
 
 // A radio player
@@ -47,25 +53,26 @@ impl Player {
     }
 
     // Update the status from the underlying MPV instance
-    pub fn update_status(&mut self) {
+    pub fn update_status(&mut self) -> Option<PlayerState> {
         if let Some(Ok(event)) = self.event_context.wait_event(0f64) {
+            let title_or_default = self.current_title.clone().unwrap_or("".to_owned());
             match event {
-                Event::StartFile => self.state = PlayerState::Playing,
-                Event::PlaybackRestart => self.state = PlayerState::Playing,
-                Event::Shutdown => self.state = PlayerState::Stopped,
-                Event::EndFile(_) => self.state = PlayerState::Stopped,
+                Event::StartFile => Some(PlayerState::Playing(title_or_default)),
+                Event::PlaybackRestart => Some(PlayerState::Playing(title_or_default)),
+                Event::Shutdown => Some(PlayerState::Stopped),
+                Event::EndFile(_) => Some(PlayerState::Stopped),
                 Event::PropertyChange {
                     name: "media-title",
                     change: PropertyData::Str(title),
                     ..
-                } => self.current_title = Some(title.into()),
-                _ => {}
+                } => {
+                    self.current_title = Some(title.into());
+                    None
+                }
+                _ => None,
             }
+        } else {
+            None
         }
-    }
-
-    // The player state, e.g. playing or stopped
-    pub fn state(&self) -> PlayerState {
-        self.state
     }
 }
