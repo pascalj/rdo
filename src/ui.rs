@@ -1,5 +1,6 @@
 use ratatui::crossterm::event::KeyEvent;
 use ratatui::style::{Modifier, Style};
+use ratatui::widgets::Wrap;
 
 use crate::app::{App, EditField, Mode, Station};
 
@@ -41,7 +42,7 @@ impl<'a> UI<'a> {
     }
 
     fn show_confirm_delete(&mut self, app: &App, f: &mut ratatui::Frame, index: usize) {
-        let area = centered_rect(60, 15, f.area());
+        let area = centered_rect(55, 5, f.area());
         let name = app
             .stations
             .get(index)
@@ -55,10 +56,11 @@ impl<'a> UI<'a> {
             .block(Block::bordered().title("Delete?").padding(Padding::new(
                 0,
                 0,
-                area.height / 2 - 1,
+                0,
                 0,
             )))
-            .centered();
+            .centered()
+            .wrap(Wrap { trim: false });
         f.render_widget(Clear, area);
         f.render_widget(block, area);
     }
@@ -122,7 +124,7 @@ impl<'a> UI<'a> {
             .title_alignment(Alignment::Center)
             .padding(ratatui::widgets::Padding::horizontal(5))
             .style(Style::default().bg(Color::DarkGray));
-        let area = centered_rect(60, 18, f.area());
+        let area = centered_rect(60, 8, f.area());
 
         let popup_chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -193,14 +195,14 @@ impl<'a> UI<'a> {
     }
 }
 
-pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+pub fn centered_rect(width: u16, height: u16, r: Rect) -> Rect {
     // Cut the given rectangle into three vertical pieces
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Min(0),
+            Constraint::Length(height),
+            Constraint::Min(0),
         ])
         .split(r);
 
@@ -208,9 +210,9 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Min(0),
+            Constraint::Length(width),
+            Constraint::Min(0),
         ])
         .split(popup_layout[1])[1] // Return the middle chunk
 }

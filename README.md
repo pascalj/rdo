@@ -2,7 +2,7 @@
 
 A minimal radio player for the terminal.
 
-![rdo screenhot](docs/screenshot.png)
+![rdo screenhot](docs/rdo.gif)
 
 ## Usage
 
