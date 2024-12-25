@@ -34,7 +34,7 @@ impl<'a> UI<'a> {
         match app.mode {
             Mode::Add | Mode::Edit(_) => {
                 self.focus_edit_field(app);
-                self.show_edit(f);
+                self.show_add_edit(app.mode, f);
             }
             Mode::Delete(index) => self.show_confirm_delete(app, f, index),
             _ => {}
@@ -53,12 +53,11 @@ impl<'a> UI<'a> {
             name
         );
         let block = Paragraph::new(message)
-            .block(Block::bordered().title("Delete?").padding(Padding::new(
-                0,
-                0,
-                0,
-                0,
-            )))
+            .block(
+                Block::bordered()
+                    .title("Delete?")
+                    .padding(Padding::new(0, 0, 0, 0)),
+            )
             .centered()
             .wrap(Wrap { trim: false });
         f.render_widget(Clear, area);
@@ -118,9 +117,14 @@ impl<'a> UI<'a> {
         }
     }
 
-    fn show_edit(&mut self, f: &mut ratatui::Frame) {
+    fn show_add_edit(&mut self, mode: Mode, f: &mut ratatui::Frame) {
+        let title = match mode {
+            Mode::Add => "Add station",
+            Mode::Edit(_) => "Edit station",
+            _ => "",
+        };
         let popup_block = Block::default()
-            .title("Edit station")
+            .title(title)
             .title_alignment(Alignment::Center)
             .padding(ratatui::widgets::Padding::horizontal(5))
             .style(Style::default().bg(Color::DarkGray));
