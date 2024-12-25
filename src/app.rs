@@ -1,5 +1,5 @@
 use dirs::config_local_dir;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ratatui::widgets::{ListItem, ListState};
 use serde::{Deserialize, Serialize};
@@ -151,8 +151,12 @@ impl App {
     fn save_stations(&self) -> std::io::Result<()> {
         let file_path =
             station_file_path().ok_or(std::io::Error::other("Could not find station path"))?;
-        let mut writer = csv::Writer::from_path(file_path)?;
 
+        if let Some(missing_dir) = file_path.parent().filter(|dir| !dir.exists()) {
+            std::fs::create_dir_all(missing_dir)?;
+        }
+
+        let mut writer = csv::Writer::from_path(file_path)?;
         for station in self.stations.clone() {
             writer.serialize(station)?;
         }
