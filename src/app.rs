@@ -148,6 +148,9 @@ impl App {
 
     // Delete a station persistently
     pub fn delete_station(&mut self, index: usize) -> std::io::Result<()> {
+        if Some(index) == self.current_station {
+            self.stop()
+        }
         self.stations.remove(index);
         self.save_stations()
     }
