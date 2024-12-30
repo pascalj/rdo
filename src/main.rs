@@ -42,7 +42,6 @@ fn run_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             return Ok(());
         }
 
-
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 match app.mode {
@@ -88,15 +87,17 @@ fn handle_edit_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io::R
 fn handle_normal_mode(app: &mut app::App, ui: &mut ui::UI, key: KeyEvent) -> io::Result<()> {
     match (key.code, app.selected_index()) {
         (KeyCode::Char('e'), Some(i)) => {
-            if let Some(station) = app.stations.get(i) {
-                ui.init_edit();
-                ui.fill_edit_form(&station);
+            if let station@Some(_) = app.stations.get(i) {
+                ui.init_edit(station);
                 app.mode = Mode::Edit(i);
             }
         }
         (KeyCode::Char('d'), Some(i)) => app.mode = Mode::Delete(i),
         (KeyCode::Char('q'), _) => app.mode = Mode::Exit,
-        (KeyCode::Char('n'), _) => app.mode = Mode::Add,
+        (KeyCode::Char('n'), _) => {
+            ui.init_edit(None);
+            app.mode = Mode::Add;
+        }
         (KeyCode::Char('k'), _) => app.select_previous(),
         (KeyCode::Char('K'), Some(i)) => {
             app.swap_station(i, i.checked_sub(1).unwrap_or(i))?;

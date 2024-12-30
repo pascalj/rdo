@@ -146,7 +146,7 @@ impl<'a> UI<'a> {
         f.render_widget(popup_block, area);
     }
 
-    pub fn init_edit(&mut self) {
+    pub fn init_edit(&mut self, station: Option<&Station>) {
         self.name_input.set_cursor_line_style(Style::default());
         self.name_input.set_placeholder_text("Name");
         self.url_input.set_cursor_line_style(Style::default());
@@ -155,11 +155,10 @@ impl<'a> UI<'a> {
         self.url_input.set_placeholder_text("URL");
         self.name_input = TextArea::default();
         self.url_input = TextArea::default();
-    }
-
-    pub fn fill_edit_form(&mut self, station: &Station) {
-        self.name_input.insert_str(station.name.clone());
-        self.url_input.insert_str(station.url.clone());
+        if let Some(station) = station {
+            self.name_input.insert_str(station.name.clone());
+            self.url_input.insert_str(station.url.clone());
+        }
     }
 
     pub fn update_textfields(&mut self, app: &App, key: KeyEvent) {
